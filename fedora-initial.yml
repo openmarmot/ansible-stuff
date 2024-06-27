@@ -1,0 +1,52 @@
+# do some inital setup tasks on a new fedora server vm
+# ansible-playbook -i your_server_ip, -u andrew --ask-pass fedora-initial.yml
+
+
+- name: Configure Fedora server
+  hosts: all
+  become: yes
+  
+  vars_prompt:
+    - name: "public_key"
+      prompt: "Enter the public SSH key"
+      private: no
+
+  tasks:
+    - name: Ensure user exists and has wheel
+      user:
+        name: "{{ ansible_user }}"
+        state: present
+        groups: wheel
+        append: yes
+
+    - name: Add public key to the user
+      authorized_key:
+        user: "{{ ansible_user }}"
+        state: present
+        key: "{{ public_key }}"
+
+    - name: Disable SSH password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        state: present
+      notify: Restart SSH
+
+    - name: Disable SELinux
+      selinux:
+        state: disabled
+
+    - name: Update all packages
+      dnf:
+        name: '*'
+        state: latest
+
+    - name: Reboot the server
+      reboot:
+
+  handlers:
+    - name: Restart SSH
+      service:
+        name: sshd
+        state: restarted

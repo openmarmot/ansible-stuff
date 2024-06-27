@@ -1,0 +1,47 @@
+# Ignore Ansible temporary files
+*.retry
+
+# Ignore SSH key files (ensure private keys are not committed)
+*.pem
+*.key
+
+# Ignore inventory files (if they contain sensitive information)
+inventory/
+hosts
+
+# Ignore Ansible Vault password files
+.vault_password
+
+# Ignore Ansible facts cache
+.fact_cache/
+
+# Ignore logs
+*.log
+
+# Ignore Python virtual environments
+venv/
+env/
+__pycache__/
+*.py[cod]
+
+# Ignore compiled libraries
+*.so
+
+# Ignore roles dependencies installed via ansible-galaxy
+roles/
+collections/
+
+# Ignore personal IDE/editor configurations
+.vscode/
+.idea/r
+*.swp
+*.swo
+*~
+
+# Ignore other sensitive or irrelevant files
+*.backup
+*.bak
+*.old
+*.orig
+*.tmp
+*.swp
