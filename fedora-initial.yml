@@ -1,6 +1,8 @@
 # do some inital setup tasks on a new fedora server vm
-# ansible-playbook -i your_server_ip, -u andrew --ask-pass fedora-initial.yml
+# ansible-playbook -i your_server_ip, -u andrew --ask-pass --ask-become-pass fedora-initial.yml
 
+# note - as of oct 30th 2024, this only works on Fedora 41 if you install python3-libdnf5 first. 
+# sudo dnf install -y python3-libdnf5
 
 - name: Configure Fedora server
   hosts: all
@@ -37,8 +39,18 @@
       selinux:
         state: disabled
 
+    - name: Ensure Cockpit service is stopped
+      ansible.builtin.systemd:
+        name: cockpit.socket
+        state: stopped
+
+    - name: Ensure Cockpit does not start at boot
+      ansible.builtin.systemd:
+        name: cockpit.socket
+        enabled: no
+
     - name: Update all packages
-      dnf:
+      ansible.builtin.dnf:
         name: '*'
         state: latest
 
