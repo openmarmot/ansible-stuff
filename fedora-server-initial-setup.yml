@@ -1,5 +1,9 @@
 # do some inital setup tasks on a new fedora server vm
-# ansible-playbook -i your_server_ip, -u andrew --ask-pass --ask-become-pass fedora-initial.yml
+#recommended fedora server software setup :
+# - custom + guest agents + common networkmanager submodules + standard
+
+# designed and tested on Fedora 41
+# ansible-playbook -i your_server_ip, -u andrew --ask-pass --ask-become-pass fedora-server-initial-setup.yml
 
 # note - as of oct 30th 2024, this only works on Fedora 41 if you install python3-libdnf5 first. 
 # sudo dnf install -y python3-libdnf5
@@ -27,6 +31,7 @@
         state: present
         key: "{{ public_key }}"
 
+    # this way only SSH key auth is allowed
     - name: Disable SSH password authentication
       lineinfile:
         path: /etc/ssh/sshd_config
@@ -39,15 +44,31 @@
       selinux:
         state: disabled
 
+    # optional as cockpit may not be installed
     - name: Ensure Cockpit service is stopped
       ansible.builtin.systemd:
         name: cockpit.socket
         state: stopped
+      ignore_errors: yes
 
+    # optional as cockpit may not be installed
     - name: Ensure Cockpit does not start at boot
       ansible.builtin.systemd:
         name: cockpit.socket
         enabled: no
+      ignore_errors: yes
+
+    - name: Extend the logical volume
+      community.general.lvol:
+        vg: fedora
+        lv: root
+        size: +100%FREE
+
+    - name: Extend the XFS filesystem
+      community.general.filesystem:
+        fstype: xfs
+        dev: /dev/fedora/root
+        resizefs: yes
 
     - name: Update all packages
       ansible.builtin.dnf:
