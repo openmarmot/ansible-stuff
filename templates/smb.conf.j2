@@ -1,0 +1,17 @@
+[global]
+workgroup = WORKGROUP
+server string = Samba Server %v
+netbios name = FEDORASAMBA
+security = user
+map to guest = bad user
+dns proxy = no
+
+[share0]
+comment = Your Share Description
+path = /share0
+writeable = yes
+browsable = yes
+public = no
+create mask = 0644
+directory mask = 0755
+valid users = @smbuser

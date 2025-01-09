@@ -1,8 +1,9 @@
 # do some inital setup tasks on a new fedora server vm
+# designed and tested on Fedora 41
+
 #recommended fedora server software setup :
 # - custom + guest agents + common networkmanager submodules + standard
 
-# designed and tested on Fedora 41
 # ansible-playbook -i your_server_ip, -u andrew --ask-pass --ask-become-pass fedora-server-initial-setup.yml
 
 # note - as of oct 30th 2024, this only works on Fedora 41 if you install python3-libdnf5 first. 

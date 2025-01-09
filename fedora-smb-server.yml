@@ -1,0 +1,84 @@
+# Setup a SMB file server on Fedora Server
+
+# !! note - smbpasswd not working, manually run smbpasswd -a smbuser and then restart smb service afterwards to fix
+
+# designed and tested on Fedora 41
+
+# assumes fedora-server-initial-setup.yml has been run
+
+# prereq (this is required for the password stuff. install on the host you are running ansible from)
+# pip install passlib
+
+# usage
+# ansible-playbook -i your_server_ip, -u andrew --ask-become-pass fedora-smb-server.yml
+
+---
+- name: Setup Samba File Server on Fedora 41
+  hosts: all
+  become: true
+  tasks:
+    - name: Install Samba
+      dnf:
+        name: samba
+        state: present
+
+    - name: Prompt for user password
+      pause:
+        prompt: "Please enter the password for the SMB user"
+      register: user_password
+      no_log: true  
+
+    - name: Create the smb user with the provided password
+      user:
+        name: smbuser
+        password: "{{ user_password.user_input | password_hash('sha512') }}"
+        state: present
+        shell: /bin/bash  
+        #groups: sudo  
+
+    - name: Create shared directory
+      file:
+        path: /share0
+        state: directory
+        mode: '0755'
+        owner: smbuser
+        group: smbuser
+
+    - name: Set Samba password for the user
+      command: "echo -ne '{{ user_password.user_input }}\n{{ user_password.user_input }}\n' | smbpasswd -s -a smbuser"
+      #no_log: true
+
+    - name: Configure Samba
+      template:
+        src: templates/smb.conf.j2
+        dest: /etc/samba/smb.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart samba
+
+    - name: Ensure Samba services are enabled and running
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - smb
+        - nmb
+
+    - name: Configure firewall to allow Samba
+      firewalld:
+        service: samba
+        permanent: yes
+        state: enabled
+      notify: reload firewall
+
+  handlers:
+    - name: restart samba
+      systemd:
+        name: smb
+        state: restarted
+    - name: reload firewall
+      systemd:
+        name: firewalld
+        state: reloaded
