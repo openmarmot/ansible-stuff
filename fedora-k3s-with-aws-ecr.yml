@@ -12,11 +12,25 @@
 # 2. do a test run of the cron script 
 #   sh /root/cron/ecr_secret_cron.sh &>> /var/log/ecr_login_log.txt
 
+# this repo is a example of how to use the ecr integration
+# https://github.com/openmarmot/simple-ecr-container-flask-rest/tree/main
+
 ---
 - name: Configure system with podman, awscli, k3s, and cron setup
   hosts: all
   become: true
   tasks:
+    - name: Install utilities
+      ansible.builtin.dnf:
+        name:
+          - git
+          - htop
+        state: present
+      register: utilities_install
+      retries: 3
+      delay: 5
+      until: utilities_install is success
+
     - name: Install podman and podman-docker
       ansible.builtin.dnf:
         name:

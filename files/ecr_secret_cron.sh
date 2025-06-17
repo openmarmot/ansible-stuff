@@ -1,6 +1,8 @@
 # ecr_secret_cron for kubernetes
+
 ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
-REGION=xx-xxxx-x # update this with your region !
+# get the default region that was set in the aws cli 
+REGION="$(aws configure get region)"
 SECRET_NAME=${REGION}-ecr-registry
 
 TOKEN=`aws ecr --region=$REGION get-authorization-token --output text --query authorizationData[].authorizationToken | base64 -d | cut -d: -f2`
