@@ -1,13 +1,13 @@
 # setup k3s with aws ecr integration on Fedora server
-# updated June 2025
+
 # tested on Fedora 42 Server Edition
 # ! NOTE - this expects that fedora-server-initial-setup.yml has been ran as a prereq
 
 # to run 
 # ansible-playbook -i your_server_ip, -u andrew --ask-become-pass fedora-k3s-with-aws-ecr.yml
 
-# - after running perform the following manual steps 
-# 1. configure the aws cli with a key for a IAM role that has read access to AWS ECR
+# - after running perform the following manual steps as the root user
+# 1. configure the aws cli with a key for a IAM role that has read access to AWS ECR. make sure to set a region.
 #   aws configure
 # 2. do a test run of the cron script 
 #   sh /root/cron/ecr_secret_cron.sh &>> /var/log/ecr_login_log.txt
