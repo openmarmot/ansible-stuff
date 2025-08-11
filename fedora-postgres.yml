@@ -1,0 +1,57 @@
+# setup a postgres server on Fedora Server 
+
+# tested on Fedora 42 Server Edition
+# ! NOTE - this expects that fedora-server-initial-setup.yml has been ran as a prereq
+
+# to run 
+# ansible-playbook -i your_server_ip, -u andrew --ask-become-pass fedora-postgres.yml
+
+# postgres creates a user named 'postgres' that has local admin rights to the postgres server
+# this command will launch psql as the postgres user allowing you access locally : 
+# sudo -u postgres psql
+
+# alternatively you can set a password for the postgres user and connect over the network
+# sudo -u postgres psql -c "ALTER ROLE postgres WITH PASSWORD 'your_secure_password';"
+# psql -U postgres -d postgres -h localhost -W
+---
+- name: Set up PostgreSQL server on Fedora
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install PostgreSQL server and client packages
+      dnf:
+        name:
+          - postgresql-server
+          - postgresql
+        state: present
+
+    - name: Initialize PostgreSQL database
+      command: postgresql-setup --initdb
+      args:
+        creates: /var/lib/pgsql/data/postgresql.conf
+
+    - name: Enable and start PostgreSQL service
+      systemd:
+        name: postgresql
+        enabled: yes
+        state: started
+
+    - name: Ensure firewalld is installed and running
+      dnf:
+        name: firewalld
+        state: present
+      notify: Start firewalld
+
+    - name: Open PostgreSQL port in firewalld
+      firewalld:
+        service: postgresql
+        permanent: yes
+        immediate: yes
+        state: enabled
+
+  handlers:
+    - name: Start firewalld
+      systemd:
+        name: firewalld
+        state: started
+        enabled: yes
