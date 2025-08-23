@@ -15,6 +15,10 @@
 # this repo is a example of how to use the ecr integration
 # https://github.com/openmarmot/simple-ecr-container-flask-rest/tree/main
 
+# kubectl setup on another machine
+# copy the contents of this file from the server : /etc/rancher/k3s/k3s.yaml
+# put it in ~/.kube/config file on the computer where you have installed kubectl
+
 ---
 - name: Configure system with podman, awscli, k3s, and cron setup
   hosts: all
