@@ -1,0 +1,43 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    # DNS resolver: Force IPv4 to avoid unreachable IPv6 attempts
+    resolver 8.8.8.8 ipv6=off;
+
+    # Increase buffers to handle large upstream headers (e.g., from Cloudflare)
+    proxy_buffer_size 128k;
+    proxy_buffers 4 256k;
+    proxy_busy_buffers_size 256k;
+
+    # Increase timeouts for slower upstream responses
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 60s;
+    proxy_read_timeout 60s;
+
+    server {
+        listen 443 ssl;
+        server_name {{ vm_ip }};
+
+        # SSL configuration
+        ssl_certificate {{ ssl_cert_path }};
+        ssl_certificate_key {{ ssl_key_path }};
+
+        location / {
+            proxy_pass https://{{ target_domain }};
+            proxy_set_header Host {{ target_domain }};
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_ssl_server_name on;
+        }
+    }
+
+    # Optional: Redirect HTTP to HTTPS (add if you want port 80 to redirect)
+    server {
+        listen 80;
+        server_name {{ vm_ip }};
+        return 301 https://$host$request_uri;
+    }
+}

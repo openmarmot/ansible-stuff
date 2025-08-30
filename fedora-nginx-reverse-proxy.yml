@@ -1,0 +1,96 @@
+# Setup a NGINX Reverse Proxy Fedora Server
+
+# designed and tested on Fedora 42 Server Edition
+
+# assumes fedora-server-initial-setup.yml has been run
+
+
+# usage
+# ansible-playbook -i your_server_ip, -u andrew --ask-become-pass fedora-nginx-reverse-proxy.yml
+
+
+---
+- name: Set up nginx reverse proxy for user-specified domain on Fedora
+  hosts: all
+  become: true  
+  vars:
+    ssl_cert_path: "/etc/nginx/cert.pem"
+    ssl_key_path: "/etc/nginx/cert.key"
+  
+  vars_prompt:
+    - name: target_domain
+      prompt: "Enter the target domain to proxy "
+      default: "example.com"
+      private: no
+    - name: vm_ip
+      prompt: "Enter vm IP"
+      private: no
+
+  tasks:
+    - name: Install nginx and dependencies
+      dnf:
+        name:
+          - nginx
+          - openssl
+        state: present
+      register: dnf_result
+      retries: 3
+      delay: 5
+      until: dnf_result is success
+
+    - name: Ensure nginx conf directory exists
+      file:
+        path: /etc/nginx
+        state: directory
+        mode: '0755'
+
+    - name: Generate self-signed SSL certificate
+      command: >
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -keyout {{ ssl_key_path }} -out {{ ssl_cert_path }}
+        -subj "/CN={{ vm_ip }}"
+      args:
+        creates: "{{ ssl_cert_path }}"
+      notify: Reload nginx
+
+    - name: Deploy nginx configuration for proxy
+      template:
+        src: templates/nginx-reverse-proxy.conf.j2
+        dest: /etc/nginx/nginx.conf
+        mode: '0644'
+      notify: Reload nginx
+
+    - name: Ensure firewalld is installed
+      dnf:
+        name: firewalld
+        state: present
+
+    - name: Enable and start firewalld
+      service:
+        name: firewalld
+        state: started
+        enabled: yes
+
+    - name: Allow HTTP and HTTPS traffic in firewalld
+      firewalld:
+        service: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: enabled
+      loop:
+        - http
+        - https
+
+    - name: Ensure nginx is enabled and started
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Reload nginx
+      service:
+        name: nginx
+        state: reloaded
+
+...
