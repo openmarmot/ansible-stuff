@@ -7,7 +7,7 @@ SECRET_NAME=${REGION}-ecr-registry
 
 TOKEN=`aws ecr --region=$REGION get-authorization-token --output text --query authorizationData[].authorizationToken | base64 -d | cut -d: -f2`
 
-namespaces=$(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}')
+namespaces=$(/usr/local/bin/kubectl get namespaces -o jsonpath='{.items[*].metadata.name}')
 
 # Loop through each namespace to create or update the secret
 for ns in $namespaces; do
