@@ -1,15 +1,11 @@
 # do some inital setup tasks on a new fedora server vm
-# updated May 2025
-# tested on Fedora 42 Server Edition
+# updated Nov 2025
+# tested on Fedora 43 Server Edition
 
 #recommended fedora server software setup :
 # - custom + guest agents + common networkmanager submodules + standard
 
 # you might have to ssh to the host first to accept the key into your known hosts
-
-# update - this seems to be fixed for Fedora 42
-# note - as of oct 30th 2024, this only works on Fedora 41 if you install python3-libdnf5 first. 
-# sudo dnf install -y python3-libdnf5
 
 # to run : 
 # ansible-playbook -i your_server_ip, -u andrew --ask-pass --ask-become-pass fedora-server-initial-setup.yml
