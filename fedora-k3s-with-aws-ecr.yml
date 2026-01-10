@@ -110,3 +110,41 @@
         hour: '*/10'
         job: 'sh /root/cron/ecr_secret_cron.sh &>> /var/log/ecr_login_log.txt'
         state: present
+
+    # === k8s-service-dashboard installation ===
+
+    - name: Install Python system prerequisites (required for venv and pip)
+      ansible.builtin.dnf:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Remove any existing temporary install directory (cleanup from previous runs)
+      ansible.builtin.file:
+        path: /tmp/k8s-service-dashboard-install
+        state: absent
+
+    - name: Clone latest k8s-service-dashboard repository to temporary directory
+      ansible.builtin.git:
+        repo: https://github.com/openmarmot/k8s-service-dashboard.git
+        dest: /tmp/k8s-service-dashboard-install
+        update: yes
+        force: yes
+
+    - name: Run the repository's install script (copies files, creates venv, installs deps, sets up systemd)
+      ansible.builtin.command: ./install_service_dashboard.sh
+      args:
+        chdir: /tmp/k8s-service-dashboard-install
+
+    - name: Reload systemd daemon and restart/enable dashboard service
+      ansible.builtin.systemd:
+        daemon_reload: yes
+        name: k8s-service-dashboard
+        state: restarted
+        enabled: yes
+
+    - name: Clean up temporary clone directory
+      ansible.builtin.file:
+        path: /tmp/k8s-service-dashboard-install
+        state: absent
