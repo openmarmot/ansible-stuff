@@ -1,0 +1,100 @@
+# setup k3s with aws ecr integration on Fedora server
+
+# tested on Fedora 43 Server Edition
+# ! NOTE - this expects that fedora-server-initial-setup.yml has been ran as a prereq
+
+# to run 
+# ansible-playbook -i your_server_ip, -u andrew --ask-become-pass fedora-k3s.yml
+
+
+# kubectl setup on another machine
+# copy the contents of this file from the server : /etc/rancher/k3s/k3s.yaml
+# put it in ~/.kube/config file on the computer where you have installed kubectl
+
+---
+- name: Configure system with podman, awscli, k3s, and cron setup
+  hosts: all
+  become: true
+  tasks:
+    - name: Install utilities
+      ansible.builtin.dnf:
+        name:
+          - git
+          - htop
+        state: present
+      register: utilities_install
+      retries: 3
+      delay: 5
+      until: utilities_install is success
+
+    - name: Install podman and podman-docker
+      ansible.builtin.dnf:
+        name:
+          - podman
+          - podman-docker
+        state: present
+      register: podman_install
+      retries: 3
+      delay: 5
+      until: podman_install is success
+
+    - name: Manage podman service
+      ansible.builtin.systemd:
+        name: podman
+        state: started
+        enabled: true
+      when: podman_install is success
+
+    - name: Install k3s
+      ansible.builtin.shell:
+        cmd: curl -sfL https://get.k3s.io | sh -
+        creates: /usr/local/bin/k3s
+      args:
+        executable: /bin/bash
+      register: k3s_install
+      changed_when: k3s_install.rc == 0
+
+    - name: Stop and disable firewalld
+      ansible.builtin.systemd:
+        name: firewalld
+        state: stopped
+        enabled: false
+      ignore_errors: true  # In case firewalld is not installed
+
+    # === k8s-service-dashboard installation ===
+
+    - name: Install Python system prerequisites (required for venv and pip)
+      ansible.builtin.dnf:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Remove any existing temporary install directory (cleanup from previous runs)
+      ansible.builtin.file:
+        path: /tmp/k8s-service-dashboard-install
+        state: absent
+
+    - name: Clone latest k8s-service-dashboard repository to temporary directory
+      ansible.builtin.git:
+        repo: https://github.com/openmarmot/k8s-service-dashboard.git
+        dest: /tmp/k8s-service-dashboard-install
+        update: yes
+        force: yes
+
+    - name: Run the repository's install script (copies files, creates venv, installs deps, sets up systemd)
+      ansible.builtin.command: ./install_service_dashboard.sh
+      args:
+        chdir: /tmp/k8s-service-dashboard-install
+
+    - name: Reload systemd daemon and restart/enable dashboard service
+      ansible.builtin.systemd:
+        daemon_reload: yes
+        name: k8s-service-dashboard
+        state: restarted
+        enabled: yes
+
+    - name: Clean up temporary clone directory
+      ansible.builtin.file:
+        path: /tmp/k8s-service-dashboard-install
+        state: absent
